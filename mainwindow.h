@@ -24,7 +24,7 @@ public:
     void init();
     void loadSettings();
     string GetStdoutFromCommand(string cmd);
-    void test();
+    void test(string cmd);
 
 protected:
     void changeEvent(QEvent*);
@@ -40,6 +40,9 @@ private slots:
 
     void on_comboBox_2_activated(int index);
 
+    void updateProgress();
+
+    void finishProgress();
 
 private:
     Ui::MainWindow *ui;

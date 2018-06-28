@@ -18,4 +18,16 @@ FORMS    += mainwindow.ui
 
 TRANSLATIONS += translation_vi.ts
 
+win32 {
+    RC_FILE = FTKGui.rc
+}
+
+
+OTHER_FILES += \
+    FTKGui.rc \
+    FTKGui.exe.manifest.xml
+
+
+
+
 

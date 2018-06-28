@@ -18,3 +18,4 @@ FORMS    += mainwindow.ui
 
 TRANSLATIONS += translation_vi.ts
 
+

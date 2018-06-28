@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QDebug>
+#include <QProcess>
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -42,32 +43,50 @@ void MainWindow::changeEvent(QEvent* event)
 }
 
 void MainWindow::init() {
-    string cmd[2];
+    QString cmd[2];
     cmd[0] = "wmic diskdrive get DeviceID, Model";
     cmd[1] = "wmic logicaldisk get caption,volumename,description";
 
     for (int i = 0; i < 2; i++) {
-        size[i] = 0;
-        FILE * stream;
-        const int max_buffer = 256;
-        char buffer[max_buffer];
-        cmd[i].append(" 2>&1");
+//        size[i] = 0;
+//        FILE * stream;
+//        const int max_buffer = 256;
+//        char buffer[max_buffer];
+//        cmd[i].append(" 2>&1");
 
-        stream = popen(cmd[i].c_str(), "r");
-        if (stream) {
-            while (!feof(stream))
-                if (fgets(buffer, max_buffer, stream) != NULL) {
-                    string line(buffer);
-                    line.erase(line.length() - 1);
-                    if (line.find("\\\\.\\") == -1 && line.find(":") == -1)
-                        continue;
-                    qDebug() << line.c_str();
-                    listDrive[i][size[i]] = line;
-                    size[i]++;
-                }
-                pclose(stream);
+//        stream = popen(cmd[i].c_str(), "r");
+//        if (stream) {
+//            while (!feof(stream))
+//                if (fgets(buffer, max_buffer, stream) != NULL) {
+//                    string line(buffer);
+//                    line.erase(line.length() - 1);
+//                    if (line.find("\\\\.\\") == -1 && line.find(":") == -1)
+//                        continue;
+//                    qDebug() << line.c_str();
+//                    listDrive[i][size[i]] = line;
+//                    size[i]++;
+//                }
+//                pclose(stream);
+//        }
+//    //    size[i]--;
+        size[i] = 0;
+        proc = new QProcess();
+        proc->start(cmd[i]);
+        proc->waitForFinished();
+        while (1) {
+            QString line = proc->readLine();
+            if (line.size() == 0)
+                break;
+            line = line.left(line.size() - 1);
+            if (line.indexOf("\\\\.\\") == -1 && line.indexOf(":") == -1)
+                continue;
+            qDebug() << line;
+            listDrive[i][size[i]] = line;
+            size[i]++;
         }
-    //    size[i]--;
+//        qDebug() << proc->readLine();
+        delete proc;
+
     }
     on_comboBox_2_activated(0);
 
@@ -79,6 +98,20 @@ void MainWindow::init() {
     string tmp_str(tmp_wstr.begin(), tmp_wstr.end());
     pwd = tmp_str;
     loadSettings();
+//    test();
+}
+
+void MainWindow::test() {
+    QProcess *proc;
+    proc = new QProcess(this);
+
+    proc->start("wmic diskdrive get DeviceID, Model");
+    proc->waitForFinished();
+
+    qDebug() << proc->readAllStandardOutput();
+
+
+
 }
 
 void MainWindow::loadSettings() {
@@ -162,5 +195,5 @@ void MainWindow::on_comboBox_2_activated(int index)
 {
     ui ->comboBox->clear();
     for (int i = 0; i < size[index]; i++)
-        ui ->comboBox->addItem(listDrive[index][i].c_str());
+        ui ->comboBox->addItem(listDrive[index][i]);
 }

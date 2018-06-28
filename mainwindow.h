@@ -1,8 +1,10 @@
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
 #include <QTranslator>
+#include <QProcess>
 #include <string>
 #include <QDebug>
 
@@ -22,6 +24,7 @@ public:
     void init();
     void loadSettings();
     string GetStdoutFromCommand(string cmd);
+    void test();
 
 protected:
     void changeEvent(QEvent*);
@@ -40,10 +43,11 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QProcess *proc;
     QTranslator translatorVi;
     string pwd;
     string arg[8];
-    string listDrive[2][100];
+    QString listDrive[2][100];
     int size[2];
 };
 

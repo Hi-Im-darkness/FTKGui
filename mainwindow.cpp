@@ -41,38 +41,38 @@ void MainWindow::changeEvent(QEvent* event)
     QWidget::changeEvent(event);
 }
 
-//void MainWindow::init() {
-//    DWORD mydrives = 100;
-//    WCHAR lpBuffer[100];
-//    DWORD test = GetLogicalDriveStrings( mydrives, lpBuffer);
-//    int i = 0;
-//    while (1) {
-//        if (wcslen(lpBuffer + i) == 0)
-//            break;
-//        ui -> comboBox -> addItem(QString::fromWCharArray(lpBuffer + i));
-//        i += 4;
-//    }
-//}
 void MainWindow::init() {
-    string cmd = "wmic diskdrive get DeviceID, Model";
-    FILE * stream;
-    const int max_buffer = 256;
-    char buffer[max_buffer];
-    cmd.append(" 2>&1");
+    string cmd[2];
+    cmd[0] = "wmic diskdrive get DeviceID, Model";
+    cmd[1] = "wmic logicaldisk get caption,volumename,description";
 
-    stream = popen(cmd.c_str(), "r");
-    if (stream) {
-        while (!feof(stream))
-            if (fgets(buffer, max_buffer, stream) != NULL) {
-                string line(buffer);
-                int pos = line.find("\\\\.\\");
-                if (pos == -1)
-                    continue;
-                line.erase(line.length() - 1);
-                ui ->comboBox->addItem(line.c_str());
-            }
-            pclose(stream);
+    for (int i = 0; i < 2; i++) {
+        size[i] = 0;
+        FILE * stream;
+        const int max_buffer = 256;
+        char buffer[max_buffer];
+        cmd[i].append(" 2>&1");
+
+        stream = popen(cmd[i].c_str(), "r");
+        if (stream) {
+            while (!feof(stream))
+                if (fgets(buffer, max_buffer, stream) != NULL) {
+                    string line(buffer);
+                    line.erase(line.length() - 1);
+                    if (line.find("\\\\.\\") == -1 && line.find(":") == -1)
+                        continue;
+                    qDebug() << line.c_str();
+                    listDrive[i][size[i]] = line;
+                    size[i]++;
+                }
+                pclose(stream);
+        }
+    //    size[i]--;
     }
+    on_comboBox_2_activated(0);
+
+    ui->spinBox->setValue(6);
+
     TCHAR pwd_tchar[100];
     GetCurrentDirectory(100, pwd_tchar);
     wstring tmp_wstr(pwd_tchar);
@@ -94,7 +94,7 @@ void MainWindow::loadSettings() {
     else if (type == QString("E01"))
         arg[0] = "--e01";
     else {
-//        exit(0);
+
     }
     setting.endGroup();
 
@@ -118,22 +118,33 @@ void MainWindow::on_pushButton_3_clicked()
                                                     "",
                                                     QFileDialog::ShowDirsOnly
                                                     | QFileDialog::DontResolveSymlinks);
-    ui -> lineEdit_2 ->setText(dir);
+    ui -> lineEdit ->setText(dir);
 }
 
 void MainWindow::on_pushButton_clicked()
 {
     string command = pwd + "\\ftkimager ";
-    QString cb = ui ->comboBox->currentText();
-    command += cb.toStdString().substr(0, 18) + " ";
-    QString le = ui ->lineEdit_2->text();
-    command += le.toStdString();
-    le = ui -> lineEdit->text();
-    command += "/" + le.toStdString();
-    QString option;
-    option.sprintf(" %s --case-number %s --evidence-number %s --description \"%s\" --examiner \"%s\" --notes \"%s\" --frag %sMB --compress %s", arg[0].c_str(), arg[1].c_str(), arg[2].c_str(), arg[3].c_str(), arg[4].c_str(), arg[5].c_str(), arg[6].c_str(), arg[7].c_str());
-    command += option.toStdString();
-    cout << command << endl;
+    if (ui->comboBox_2->currentIndex() == 0)
+        command += ui ->comboBox->currentText().toStdString().substr(0, 18) + " ";
+    else
+        command += ui ->comboBox->currentText().toStdString().substr(0, 2) + " ";
+    command += ui ->lineEdit->text().toStdString();
+    command += "/" + ui->lineEdit_2->text().toStdString() + " ";
+    if (ui->comboBox_3->currentIndex() == 0)
+        command += "--e01";
+    else if (ui->comboBox_3->currentIndex() == 2)
+        command += "--s01";
+    command += " --case-number " + ui->lineEdit_3->text().toStdString();
+    command += " --evidence-number " + ui->lineEdit_4->text().toStdString();
+    command += " --description \"" + ui->lineEdit_5->text().toStdString() + "\"";
+    command += " --examiner \"" + ui->lineEdit_6->text().toStdString() + "\"";
+    command += " --notes \"" + ui->lineEdit_7->text().toStdString() + "\"";
+    command += " --frag " + ui->lineEdit_8->text().toStdString() + "MB";
+    char tmp[2];
+    itoa(ui->spinBox->value(), tmp, 10);
+    command += " --compress " + string(tmp);
+    cout << command.c_str()<< endl;
+    qDebug() << command.c_str() << endl;
     system(command.c_str());
 }
 
@@ -145,4 +156,11 @@ void MainWindow::on_actionEnglish_triggered()
 void MainWindow::on_actionVietnamese_triggered()
 {
     qApp->installTranslator(&translatorVi);
+}
+
+void MainWindow::on_comboBox_2_activated(int index)
+{
+    ui ->comboBox->clear();
+    for (int i = 0; i < size[index]; i++)
+        ui ->comboBox->addItem(listDrive[index][i].c_str());
 }

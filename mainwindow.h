@@ -35,11 +35,16 @@ private slots:
 
     void on_actionVietnamese_triggered();
 
+    void on_comboBox_2_activated(int index);
+
+
 private:
     Ui::MainWindow *ui;
     QTranslator translatorVi;
     string pwd;
     string arg[8];
+    string listDrive[2][100];
+    int size[2];
 };
 
 #endif // MAINWINDOW_H

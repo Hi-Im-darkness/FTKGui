@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QDebug>
 #include <QProcess>
+#include <QDir>
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -21,8 +22,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     init();
-    string path = pwd + "\\translation_vi.qm";
-    if (translatorVi.load(QString::fromStdString(path)))
+    QString path = pwd + "\\translation_vi.qm";
+    if (translatorVi.load(path))
         qDebug()<<"successfully load translation_vi file.";
 
 }
@@ -68,20 +69,13 @@ void MainWindow::init() {
     }
     on_comboBox_2_activated(0);
 
-    ui->spinBox->setValue(6);
-
-    TCHAR pwd_tchar[100];
-    GetCurrentDirectory(100, pwd_tchar);
-    wstring tmp_wstr(pwd_tchar);
-    string tmp_str(tmp_wstr.begin(), tmp_wstr.end());
-    pwd = tmp_str;
+    pwd = QDir::currentPath();
     loadSettings();
 }
 
-void MainWindow::test(string cmd) {
+void MainWindow::test(QString command) {
     proc = new QProcess();
     proc->setReadChannel(QProcess::StandardError);
-    QString command = QString::fromStdString(cmd);
 
     connect(proc, SIGNAL(readyReadStandardError()),            this, SLOT(updateProgress()));
     connect(proc, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(finishProgress()));
@@ -105,33 +99,48 @@ void MainWindow::finishProgress() {
 }
 
 void MainWindow::loadSettings() {
-    string inipath = pwd + "\\setting.ini";
-    QSettings setting(QString::fromStdString(inipath), QSettings::IniFormat);
+    QString inipath = pwd + "\\setting.ini";
+    QSettings setting(inipath, QSettings::IniFormat);
 
     setting.beginGroup("ImageType");
     QString type = setting.value("type").toString();
     if (type == QString("Raw"))
-        arg[0] = "";
+        ui->comboBox_3->setCurrentIndex(1);
     else if (type == QString("SMART"))
-        arg[0] = "--s01";
+        ui->comboBox_3->setCurrentIndex(2);
     else if (type == QString("E01"))
-        arg[0] = "--e01";
+        ui->comboBox_3->setCurrentIndex(0);
     else {
-
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Image type invalid!\nCheck your configuration setting file.");
+        messageBox.setFixedSize(1000,400);
+        exit(-1);
     }
     setting.endGroup();
 
-    setting.beginGroup("EvidenceItemInfomation");
-    arg[1] = setting.value("caseNum").toString().toStdString();
-    arg[2] = setting.value("evidenceNum").toString().toStdString();
-    arg[3] = setting.value("description").toString().toStdString();
-    arg[4] = setting.value("examiner").toString().toStdString();
-    arg[5] = setting.value("notes").toString().toStdString();
-    setting.endGroup();
-
     setting.beginGroup("ImageDestinationSetting");
-    arg[6] = setting.value("frag").toString().toStdString();
-    arg[7] = setting.value("compress").toString().toStdString();
+    QString fragValue = setting.value("frag").toString();
+    bool ok;
+    fragValue.toInt(&ok, 10);
+    qDebug() << fragValue;
+    if (ok)
+        ui->lineEdit_8->setText(fragValue);
+    else {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Fragments size invalid!\nCheck your configuration setting file.");
+        messageBox.setFixedSize(1000,400);
+        exit(-1);
+    }
+    QString compressValue = setting.value("compress").toString();
+    int tmp = compressValue.toInt(&ok, 10);
+    if (ok && tmp >= 0 && tmp <= 9)
+        ui->spinBox->setValue(tmp);
+    else {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Compression level invalid!\nCheck your configuration setting file.");
+        messageBox.setFixedSize(1000,400);
+        exit(-1);
+    }
     setting.endGroup();
 }
 
@@ -147,34 +156,58 @@ void MainWindow::on_pushButton_3_clicked()
 void MainWindow::on_pushButton_clicked()
 {
 
-    string command = pwd + "\\ftkimager ";
+    QString command = pwd + "\\ftkimager ";
     if (ui->comboBox_2->currentIndex() == 0)
-        command += ui ->comboBox->currentText().toStdString().substr(0, 18) + " ";
+        command += ui ->comboBox->currentText().left(18) + " ";
     else
-        command += ui ->comboBox->currentText().toStdString().substr(0, 2) + " ";
-    command += ui ->lineEdit->text().toStdString();
-    command += "/" + ui->lineEdit_2->text().toStdString() + " ";
+        command += ui ->comboBox->currentText().left(2) + " ";
+    QString dir = ui ->lineEdit->text();
+    if (! QDir(dir).exists()) {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Destination Image Folder does not exist!");
+        messageBox.setFixedSize(1000,400);
+        return;
+    }
+    command += dir;
+    command += "/" + ui->lineEdit_2->text()+ " ";
     if (ui->comboBox_3->currentIndex() == 0)
         command += "--e01";
     else if (ui->comboBox_3->currentIndex() == 2)
         command += "--s01";
     if (ui->lineEdit_3->text().size() != 0)
-        command += " --case-number \"" + ui->lineEdit_5->text().toStdString() + "\"";
+        command += " --case-number \"" + ui->lineEdit_5->text() + "\"";
     if (ui->lineEdit_4->text().size() != 0)
-        command += " --evidence-number \"" + ui->lineEdit_5->text().toStdString() + "\"";
+        command += " --evidence-number \"" + ui->lineEdit_5->text() + "\"";
     if (ui->lineEdit_5->text().size() != 0)
-        command += " --description \"" + ui->lineEdit_5->text().toStdString() + "\"";
+        command += " --description \"" + ui->lineEdit_5->text() + "\"";
     if (ui->lineEdit_6->text().size() != 0)
-        command += " --examiner \"" + ui->lineEdit_6->text().toStdString() + "\"";
+        command += " --examiner \"" + ui->lineEdit_6->text() + "\"";
     if (ui->lineEdit_7->text().size() != 0)
-        command += " --notes \"" + ui->lineEdit_7->text().toStdString() + "\"";
-    command += " --frag " + ui->lineEdit_8->text().toStdString() + "MB";
-    char tmp[2];
-    itoa(ui->spinBox->value(), tmp, 10);
-    command += " --compress " + string(tmp);
-    qDebug() << command.c_str() << endl;
+        command += " --notes \"" + ui->lineEdit_7->text() + "\"";
+
+    QString fragValue = ui->lineEdit_8->text();
+    bool ok;
+    fragValue.toInt(&ok, 10);
+    if (! ok) {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Fragment size invalid!\nCheck fragment size option in advanced setting tab.");
+        messageBox.setFixedSize(1000,400);
+        return;
+    }
+    command += " --frag " + fragValue + "MB";
+
+    int comprValue = ui->spinBox->value();
+    if (comprValue < 0 || comprValue > 9) {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Compression level invalid!\nCheck compression option in advanced setting tab.");
+        messageBox.setFixedSize(1000,400);
+        return;
+    }
+
+    QString tmp = QString::number(comprValue);
+    command += " --compress " + tmp;
+    qDebug() << command << endl;
     test(command);
-//    system(command.c_str());
 }
 
 void MainWindow::on_actionEnglish_triggered()
@@ -192,4 +225,14 @@ void MainWindow::on_comboBox_2_activated(int index)
     ui ->comboBox->clear();
     for (int i = 0; i < size[index]; i++)
         ui ->comboBox->addItem(listDrive[index][i]);
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    if (proc)
+    {
+        proc->kill();
+        updateProgress();
+        proc = NULL;
+       }
 }

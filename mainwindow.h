@@ -23,8 +23,7 @@ public:
     ~MainWindow();
     void init();
     void loadSettings();
-    string GetStdoutFromCommand(string cmd);
-    void test(string cmd);
+    void test(QString command);
 
 protected:
     void changeEvent(QEvent*);
@@ -44,12 +43,13 @@ private slots:
 
     void finishProgress();
 
+    void on_pushButton_2_clicked();
+
 private:
     Ui::MainWindow *ui;
     QProcess *proc;
     QTranslator translatorVi;
-    string pwd;
-    string arg[8];
+    QString pwd;
     QString listDrive[2][100];
     int size[2];
 };

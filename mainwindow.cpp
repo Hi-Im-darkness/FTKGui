@@ -7,6 +7,8 @@
 #include <QDebug>
 #include <QProcess>
 #include <QDir>
+#include <QTime>
+#include <QCloseEvent>
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -65,15 +67,34 @@ void MainWindow::init() {
             size[i]++;
         }
         delete proc;
-
+        proc = NULL;
     }
     on_comboBox_2_activated(0);
+    ui->progressBar->setValue(0);
+    ui->lineEdit_9->setReadOnly(true);
+    ui->lineEdit_10->setReadOnly(true);
+    ui->lineEdit_11->setReadOnly(true);
 
     pwd = QDir::currentPath();
     loadSettings();
+    ui->pushButton->setEnabled(false);
+    connect(ui->lineEdit,  SIGNAL(textChanged(const QString&)), this, SLOT(disableGetImage()));
+    connect(ui->lineEdit_2,  SIGNAL(textChanged(const QString&)), this, SLOT(disableGetImage()));
 }
 
-void MainWindow::test(QString command) {
+void MainWindow::disableGetImage() {
+    qDebug() << ui->lineEdit->text().size() << " " << ui->lineEdit_2->text().size();
+    if (ui->lineEdit->text().size() != 0)
+        if (ui->lineEdit_2->text().size() != 0)
+            if (! proc){
+                ui->pushButton->setEnabled(true);
+                return;
+            }
+    ui->pushButton->setEnabled(false);
+
+}
+
+void MainWindow::runCommand(QString command) {
     proc = new QProcess();
     proc->setReadChannel(QProcess::StandardError);
 
@@ -82,20 +103,48 @@ void MainWindow::test(QString command) {
 
     ui->textEdit->append(command);
     proc->start(command);
-    qDebug() << proc->state();
+    time.start();
+    if (proc->state() == 0) {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Unexpected error!");
+        messageBox.setFixedSize(1000,400);
+        delete proc;
+        proc = NULL;
+        return;
+    }
     proc->waitForReadyRead();
-    ui->textEdit->append(proc->readAllStandardError());
+    QString err = proc->readAllStandardError();
+    ui->textEdit->append(err);
+    disableGetImage();
 }
 
 void MainWindow::updateProgress() {
+    ui->lineEdit_9->setText("Creating imager...");
     QString line = proc->readLine();
     line = line.trimmed();
-    ui->textEdit->append(line);
+    if (line.indexOf("/") == -1 || line.indexOf("MB") == -1)
+        return;
+    QStringList ls = line.split(" ");
+    bool ok;
+    double cur = ls.at(0).toDouble(&ok), total = ls.at(2).toDouble(&ok);
+    int progress =  cur / total * 100;
+    ui->progressBar->setValue(progress);
+    QString timeleft = ls.at(7);
+    ui->lineEdit_10->setText(QTime().addMSecs(time.elapsed()).toString("hh:mm:ss"));
+    ui->lineEdit_11->setText("0" + timeleft);
 
+    ui->textEdit->append(line + " " + QString::number(cur) + " " + QString::number(total) + " " + QString::number(cur / total * 100));
 }
 
 void MainWindow::finishProgress() {
+    if (proc->exitStatus() == QProcess::NormalExit) {
+        ui->lineEdit_9->setText("Image create successfully.");
+        ui->progressBar->setValue(100);
+    } else
+        ui->lineEdit_9->setText("Failure: Image creation interrupted by user.");
     delete proc;
+    proc = NULL;
+    disableGetImage();
 }
 
 void MainWindow::loadSettings() {
@@ -147,7 +196,7 @@ void MainWindow::loadSettings() {
 void MainWindow::on_pushButton_3_clicked()
 {
     QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
-                                                    "",
+                                                    QDir::homePath(),
                                                     QFileDialog::ShowDirsOnly
                                                     | QFileDialog::DontResolveSymlinks);
     ui -> lineEdit ->setText(dir);
@@ -169,7 +218,14 @@ void MainWindow::on_pushButton_clicked()
         return;
     }
     command += dir;
-    command += "/" + ui->lineEdit_2->text()+ " ";
+    QString filename = ui->lineEdit_2->text();
+    if (filename.indexOf(" ") != -1) {
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Image Filename has space character!");
+        messageBox.setFixedSize(1000,400);
+        return;
+    }
+    command += "/" + filename + " ";
     if (ui->comboBox_3->currentIndex() == 0)
         command += "--e01";
     else if (ui->comboBox_3->currentIndex() == 2)
@@ -207,7 +263,7 @@ void MainWindow::on_pushButton_clicked()
     QString tmp = QString::number(comprValue);
     command += " --compress " + tmp;
     qDebug() << command << endl;
-    test(command);
+    runCommand(command);
 }
 
 void MainWindow::on_actionEnglish_triggered()
@@ -231,8 +287,19 @@ void MainWindow::on_pushButton_2_clicked()
 {
     if (proc)
     {
+        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "FTKGui",
+                                                                    tr("Are you sure?\n"),
+                                                                    QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes,
+                                                                    QMessageBox::Yes);
+        if (resBtn != QMessageBox::Yes) {
+            return;
+        }
         proc->kill();
         updateProgress();
-        proc = NULL;
-       }
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    on_pushButton_2_clicked();
 }

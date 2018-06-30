@@ -25,8 +25,3 @@ win32 {
 OTHER_FILES += \
     FTKGui.rc \
     FTKGui.exe.manifest.xml
-
-
-
-
-

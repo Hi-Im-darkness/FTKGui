@@ -5,6 +5,8 @@
 #include <QMainWindow>
 #include <QTranslator>
 #include <QProcess>
+#include <QCloseEvent>
+#include <QTime>
 #include <string>
 #include <QDebug>
 
@@ -23,10 +25,11 @@ public:
     ~MainWindow();
     void init();
     void loadSettings();
-    void test(QString command);
+    void runCommand(QString command);
 
 protected:
     void changeEvent(QEvent*);
+    void closeEvent(QCloseEvent *event);
 
 private slots:
     void on_pushButton_3_clicked();
@@ -45,6 +48,8 @@ private slots:
 
     void on_pushButton_2_clicked();
 
+    void disableGetImage();
+
 private:
     Ui::MainWindow *ui;
     QProcess *proc;
@@ -52,6 +57,7 @@ private:
     QString pwd;
     QString listDrive[2][100];
     int size[2];
+    QTime time;
 };
 
 #endif // MAINWINDOW_H

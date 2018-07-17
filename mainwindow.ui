@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>541</width>
-    <height>635</height>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -497,16 +497,6 @@
       </rect>
      </property>
     </widget>
-   </widget>
-   <widget class="QTextEdit" name="textEdit">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>470</y>
-      <width>491</width>
-      <height>111</height>
-     </rect>
-    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>

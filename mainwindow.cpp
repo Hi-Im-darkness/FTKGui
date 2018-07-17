@@ -74,6 +74,9 @@ void MainWindow::init() {
     ui->lineEdit_9->setReadOnly(true);
     ui->lineEdit_10->setReadOnly(true);
     ui->lineEdit_11->setReadOnly(true);
+    ui->lineEdit_9->setDisabled(true);
+    ui->lineEdit_10->setDisabled(true);
+    ui->lineEdit_11->setDisabled(true);
 
     pwd = QDir::currentPath();
     loadSettings();
@@ -101,7 +104,7 @@ void MainWindow::runCommand(QString command) {
     connect(proc, SIGNAL(readyReadStandardError()),            this, SLOT(updateProgress()));
     connect(proc, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(finishProgress()));
 
-    ui->textEdit->append(command);
+//    ui->textEdit->append(command);
     proc->start(command);
     time.start();
     if (proc->state() == 0) {
@@ -114,7 +117,7 @@ void MainWindow::runCommand(QString command) {
     }
     proc->waitForReadyRead();
     QString err = proc->readAllStandardError();
-    ui->textEdit->append(err);
+//    ui->textEdit->append(err);
     disableGetImage();
 }
 
@@ -133,7 +136,7 @@ void MainWindow::updateProgress() {
     ui->lineEdit_10->setText(QTime().addMSecs(time.elapsed()).toString("hh:mm:ss"));
     ui->lineEdit_11->setText("0" + timeleft);
 
-    ui->textEdit->append(line + " " + QString::number(cur) + " " + QString::number(total) + " " + QString::number(cur / total * 100));
+//    ui->textEdit->append(line + " " + QString::number(cur) + " " + QString::number(total) + " " + QString::number(cur / total * 100));
 }
 
 void MainWindow::finishProgress() {
